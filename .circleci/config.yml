@@ -1,0 +1,49 @@
+version: 2.1
+
+jobs:
+  test-and-package:
+    docker:
+      - image: cimg/node:20.11
+    working_directory: ~/project
+
+    steps:
+      - checkout
+
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "package-lock.json" }}
+            - v1-dependencies-
+
+      - run:
+          name: Instalar dependencias
+          command: npm ci
+
+      - save_cache:
+          paths:
+            - node_modules
+          key: v1-dependencies-{{ checksum "package-lock.json" }}
+
+      - run:
+          name: Ejecutar pruebas automatizadas
+          command: npm test
+
+      - run:
+          name: Empaquetar aplicación para entrega continua
+          command: |
+            mkdir -p ~/release_bundle
+            cp -r server ~/release_bundle/
+            cp -r web ~/release_bundle/
+            cp -r db ~/release_bundle/
+            cp package*.json ~/release_bundle/
+            tar -czvf ~/filacero-release.tar.gz -C ~/release_bundle .
+
+      - store_artifacts:
+          path: ~/filacero-release.tar.gz
+          destination: filacero-release.tar.gz
+
+workflows:
+  version: 2
+  entrega-continua-filacero:
+    jobs:
+      - test-and-package
+      
