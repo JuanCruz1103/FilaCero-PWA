@@ -1,0 +1,10 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {isCurp,isNss,validateRegistration} from '../server/validation.mjs';
+const base={fullName:'Persona de Prueba',curp:'GODE561231HDFRRN09',nss:'12345678901',phone:'6441234567',clinic:'Clínica Centro'};
+test('CURP con estructura esperada, 18 caracteres',()=>{assert.equal(isCurp(base.curp),true);assert.equal(isCurp('INVALIDA'),false);});
+test('NSS exige exactamente 11 dígitos',()=>{assert.equal(isNss(base.nss),true);assert.equal(isNss('1234567890'),false);});
+test('Pre-registro correcto',()=>{const r=validateRegistration(base);assert.equal(r.valid,true);assert.deepEqual(r.errors,{});});
+test('CURP o NSS es obligatorio',()=>{const r=validateRegistration({...base,curp:'',nss:''});assert.equal(r.valid,false);assert.match(r.errors.curp,/CURP o NSS/);});
+test('Teléfono y clínicas con validación',()=>{const r=validateRegistration({...base,phone:'000',clinic:'Fake'});assert.equal(r.valid,false);assert.ok(r.errors.phone);assert.ok(r.errors.clinic);});
+test('Rechaza archivos disfrazados',()=>{const r=validateRegistration({...base,document:{name:'falso.pdf',mime:'application/pdf',dataBase64:Buffer.from('MALWARE').toString('base64')}});assert.equal(r.valid,false);assert.ok(r.errors.document);});
